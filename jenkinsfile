@@ -1,0 +1,8 @@
+pipeline{
+    agent 'linux'
+    stages{
+        stage('Build'){
+            sh 'echo "done"'
+        }
+    }
+}
