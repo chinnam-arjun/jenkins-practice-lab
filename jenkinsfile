@@ -1,7 +1,7 @@
 pipeline {
   agent { label 'linux' }
+  triggers { githubPush() }
   stages {
-    stage('Checkout') { steps { checkout scm } }
-    stage('Build')    { steps { sh 'ls -la' } }
+    stage('Build') { steps { checkout scm; sh 'ls -la' } }
   }
 }
