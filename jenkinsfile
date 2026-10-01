@@ -1,8 +1,7 @@
-pipeline{
-    agent 'linux'
-    stages{
-        stage('Build'){
-            sh 'echo "done"'
-        }
-    }
+pipeline {
+  agent { label 'linux' }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Build')    { steps { sh 'ls -la' } }
+  }
 }
