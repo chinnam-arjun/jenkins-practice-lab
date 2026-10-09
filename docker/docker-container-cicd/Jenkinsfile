@@ -1,0 +1,44 @@
+pipeline {
+    agent {
+        label 'linux'
+    }
+    stages {
+        stage('docker version') {
+            steps {
+                sh 'docker --version'
+            }
+        }
+        stage('docker images') {
+            steps {
+                sh 'echo docker images available ........'
+                sh 'echo ==============================================='
+                sh 'docker images'
+            }
+        }
+        stage('start & list databases') {
+            steps {
+                // Set MYSQL_ALLOW_EMPTY_PASSWORD instead of MYSQL_ROOT_PASSWORD
+                sh 'docker run -d --name mysql-container-${BUILD_NUMBER} -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3307:3306 mysql:8.0'
+                
+                // Wait until MySQL is ready (no -p flag needed)
+                sh '''
+                echo "Waiting for MySQL to start..."
+                until docker exec mysql-container-${BUILD_NUMBER} mysqladmin ping -uroot --silent; do
+                    sleep 2
+                done
+                echo "MySQL is ready!"
+                '''
+                
+                // Connect without a password flag
+                sh 'docker exec mysql-container-${BUILD_NUMBER} mysql -uroot -e "SHOW DATABASES;"'
+            }
+        }
+    }
+    post {
+        always {
+            sh 'echo removing container .....'
+            sh 'docker rm -f mysql-container-${BUILD_NUMBER} || true'
+            sh 'echo removed!'
+        }
+    }
+}
