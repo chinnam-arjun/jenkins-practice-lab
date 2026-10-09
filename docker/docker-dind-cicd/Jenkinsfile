@@ -1,0 +1,95 @@
+pipeline{
+    agent {
+        label 'docker'
+    }
+    options{
+        timestamps()
+        disableConcurrentBuilds()
+        
+    }
+    environment{
+        DIND_NAME="jenkins-dind-${BUILD_NUMBER}"
+    }
+    stages{
+        stage('docker access test'){
+            steps{
+                sh '''
+                    set -eu
+                    whoami
+                    docker version
+                    docker context ls
+                    docker info
+                '''
+            }
+        }
+        stage('start DinD'){
+            steps{
+                sh '''
+                    set -eu 
+                    
+                    docker run -d \
+                        --name "$DIND_NAME" \
+                        --privileged \
+                        docker:dind
+                        
+                    ready=0
+                    
+                    for i in $(seq 1 30); do
+                        if docker exec "$DIND_NAME" \
+                            docker info >/dev/null 2>&1; then
+                                ready=1
+                                break
+                        fi
+                        sleep 2
+                    done
+                    
+                    if [ "$ready" -ne 1 ]; then
+                        docker logs "$DIND_NAME"
+                        exit 1
+                    fi
+                    
+                    echo "Inner daemon is ready"
+                    docker exec "$DIND_NAME" docker version
+                    
+                '''
+            }
+        }
+        stage('run nested container'){
+            steps{
+                sh ''' 
+                    docker exec "$DIND_NAME" \
+                        docker run --rm hello-world
+                '''
+            }
+        }
+        stage('build nested image'){
+            steps{
+                sh ''' 
+                    set -eu 
+                    
+                    mkdir -p dind-demo
+                    
+                    cat > dind-demo/Dockerfile << 'EOF'
+                        FROM alpine:3.22
+                        CMD [ "sh", "-c", "echo Hello from Jenkins DinD" ]
+                    EOF
+                    
+                    docker cp dind-demo "$DIND_NAME:/workplace"
+                    
+                    docker exec "$DIND_NAME" \
+                        docker build -t jenkins-dind-demo /workplace
+                    
+                    docker exec "$DIND_NAME" \
+                        docker run --rm jenkins-dind-demo
+                '''
+            }
+        }
+    }
+    post{
+        always{
+            sh ''' 
+                docker rm -f "$DIND_NAME" 2>/dev/null || true
+            '''
+        }
+    }
+}
