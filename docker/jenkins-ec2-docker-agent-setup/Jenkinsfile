@@ -1,0 +1,42 @@
+
+pipeline {
+    agent {
+        label 'ec2-docker'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Verify Agent') {
+            steps {
+                sh '''
+                    echo "Running on EC2 Jenkins Agent"
+                    hostname
+                    whoami
+                    java -version
+                '''
+            }
+        }
+
+        stage('Verify Docker') {
+            steps {
+                sh '''
+                    docker --version
+                    docker ps
+                '''
+            }
+        }
+
+        stage('Verify AWS Identity') {
+            steps {
+                sh '''
+                    aws --version
+                    aws sts get-caller-identity
+                '''
+            }
+        }
+    }
+}
