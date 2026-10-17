@@ -1,0 +1,45 @@
+pipeline {
+    agent {
+        label 'linux'
+    }
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages{
+        stage('Build') {
+            steps {
+                script {
+                    echo "Building the project..."
+                    // Add build commands here
+                    sh 'docker build -t node-pipeline:${BUILD_NUMBER} .'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    echo "Running tests..."
+                    // Add test commands here
+                    sh 'docker run --rm -d -p 5002:5000 node-pipeline:${BUILD_NUMBER} '
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    echo "Deploying the application..."
+                    // Add deployment commands here
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                        sh 'docker tag node-pipeline:${BUILD_NUMBER} 354arjun/node-pipeline:${BUILD_NUMBER}'
+                        sh 'docker push 354arjun/node-pipeline:${BUILD_NUMBER}'
+                    }
+                }
+            }
+        }
+    }
+}
