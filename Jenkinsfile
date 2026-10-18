@@ -9,7 +9,10 @@ pipeline {
     stage('Build'){
       steps {
         checkout scm;
-        dir
+        dir('node-pipeline') {
+            // Lists all hidden, system, and regular files with details on Windows
+            bat 'dir /a /q' 
+        }
       }
     }
   }
