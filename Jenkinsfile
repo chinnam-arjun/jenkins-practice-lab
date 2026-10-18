@@ -9,7 +9,7 @@ pipeline {
     stage('Build'){
       steps {
         checkout scm;
-        sh 'ls -la'
+        bat 'ls -la'
       }
     }
   }
