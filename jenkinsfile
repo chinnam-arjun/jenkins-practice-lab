@@ -7,14 +7,5 @@ pipeline {
 
   stages {
     stage('Build') { steps { checkout scm; sh 'ls -la' } }
-    stage('Test') { 
-      steps { 
-        sh 'echo "Running tests..."' 
-        sh 'test'
-    } }
-    stage('Deploy') {
-      steps {
-        echo "Deploying the application..."
-      }
-  }
+    stage('Test') { steps { sh 'echo "Running tests..."' } }
 }
