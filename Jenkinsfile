@@ -9,7 +9,7 @@ pipeline {
     stage('Build'){
       steps {
         checkout scm;
-        bat 'ls -la'
+        dir
       }
     }
   }
