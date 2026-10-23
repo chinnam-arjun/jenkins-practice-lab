@@ -1,85 +1,117 @@
+
 pipeline {
     agent {
         label 'linux'
     }
-    environment {
-        withcredentials(
-            usernamePassword(
-                credentialsId: 'dockerhub-all-access',
-                usernameVariable: 'DOCKERHUB_USERNAME',
-                passwordVariable: 'DOCKERHUB_PASSWORD'
-            )
-        )
 
-    }
     options {
         timestamps()
         disableConcurrentBuilds()
     }
+
     parameters {
         choice(
             name: 'ENVIRONMENT',
             choices: ['dev', 'qa', 'prod'],
             description: 'Select the environment to deploy to'
-        )        
+        )
     }
-    stages{
-        stage('checkout') {
+
+    stages {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
-        stage('dependencies installation') {
+
+        stage('Install Dependencies') {
             steps {
                 dir('node-pipeline') {
-                    sh 'npm ci --omit=dev'
+                    sh 'npm ci'
                 }
-                //sh 'npm ci --omit=dev'
             }
         }
-        stage('linting') {
+
+        stage('Linting') {
             steps {
                 dir('node-pipeline') {
                     sh 'npm run lint'
                 }
-                //sh 'npm run lint'
             }
         }
-        stage('testing') {
+
+        stage('Testing') {
             steps {
                 dir('node-pipeline') {
                     sh 'npm test'
                 }
             }
         }
-        stage('test coverage') {
+
+        stage('Test Coverage') {
             steps {
                 dir('node-pipeline') {
                     sh 'npm run test:coverage'
                 }
             }
         }
-        stage('build') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT .'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-all-access',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_PASSWORD'
+                    )
+                ]) {
+                    dir('node-pipeline') {
+                        sh '''
+                            docker build \
+                                -t "$DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT" .
+                        '''
+                    }
+                }
             }
         }
-        stage('push image') {
+
+        stage('Push Image') {
             when {
-                expression { params.ENVIRONMENT == 'prod' }
+                expression {
+                    params.ENVIRONMENT == 'prod'
+                }
             }
+
             steps {
-                sh '''
-                echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
-                docker push $DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT
-                '''
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-all-access',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKERHUB_PASSWORD" |
+                            docker login \
+                                -u "$DOCKERHUB_USERNAME" \
+                                --password-stdin
+
+                        docker push \
+                            "$DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT"
+
+                        docker logout
+                    '''
+                }
             }
-        }        
+        }
     }
+
     post {
         always {
             echo 'Cleaning up workspace...'
             cleanWs()
-        }       
+        }
+        
     }
 }
