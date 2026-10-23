@@ -31,22 +31,32 @@ pipeline {
         }
         stage('dependencies installation') {
             steps {
-                sh 'npm ci --omit=dev'
+                dir('node-pipeline') {
+                    sh 'npm ci --omit=dev'
+                }
+                //sh 'npm ci --omit=dev'
             }
         }
         stage('linting') {
             steps {
-                sh 'npm run lint'
+                dir('node-pipeline') {
+                    sh 'npm run lint'
+                }
+                //sh 'npm run lint'
             }
         }
         stage('testing') {
             steps {
-                sh 'npm test'
+                dir('node-pipeline') {
+                    sh 'npm test'
+                }
             }
         }
         stage('test coverage') {
             steps {
-                sh 'npm run test:coverage'
+                dir('node-pipeline') {
+                    sh 'npm run test:coverage'
+                }
             }
         }
         stage('build') {
