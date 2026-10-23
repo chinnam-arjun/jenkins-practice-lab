@@ -2,44 +2,74 @@ pipeline {
     agent {
         label 'linux'
     }
+    environment {
+        withcredentials(
+            usernamePassword(
+                credentialsId: 'dockerhub-all-access',
+                usernameVariable: 'DOCKERHUB_USERNAME',
+                passwordVariable: 'DOCKERHUB_PASSWORD'
+            )
+        )
+
+    }
     options {
         timestamps()
         disableConcurrentBuilds()
     }
-
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Select the environment to deploy to'
+        )        
+    }
     stages{
-        stage('Build') {
+        stage('checkout') {
             steps {
-                script {
-                    echo "Building the project..."
-                    // Add build commands here
-                    sh 'docker build -t node-pipeline:${BUILD_NUMBER} .'
-                }
+                checkout scm
             }
         }
-
-        stage('Test') {
+        stage('dependencies installation') {
             steps {
-                script {
-                    echo "Running tests..."
-                    // Add test commands here
-                    sh 'docker run --rm -d -p 5002:5000 node-pipeline:${BUILD_NUMBER} '
-                }
+                sh 'npm ci --omit=dev'
             }
         }
-
-        stage('Deploy') {
+        stage('linting') {
             steps {
-                script {
-                    echo "Deploying the application..."
-                    // Add deployment commands here
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                        sh 'docker tag node-pipeline:${BUILD_NUMBER} 354arjun/node-pipeline:${BUILD_NUMBER}'
-                        sh 'docker push 354arjun/node-pipeline:${BUILD_NUMBER}'
-                    }
-                }
+                sh 'npm run lint'
             }
         }
+        stage('testing') {
+            steps {
+                sh 'npm test'
+            }
+        }
+        stage('test coverage') {
+            steps {
+                sh 'npm run test:coverage'
+            }
+        }
+        stage('build') {
+            steps {
+                sh 'docker build -t $DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT .'
+            }
+        }
+        stage('push image') {
+            when {
+                expression { params.ENVIRONMENT == 'prod' }
+            }
+            steps {
+                sh '''
+                echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+                docker push $DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT
+                '''
+            }
+        }        
+    }
+    post {
+        always {
+            echo 'Cleaning up workspace...'
+            cleanWs()
+        }       
     }
 }
