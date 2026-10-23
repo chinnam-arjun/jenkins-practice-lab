@@ -1,7 +1,7 @@
 
 pipeline {
     agent {
-        label 'windows'
+        label 'linux'
     }
 
     options {
@@ -27,7 +27,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 dir('node-pipeline') {
-                    bat 'npm ci'
+                    sh 'npm ci'
                 }
             }
         }
@@ -35,7 +35,7 @@ pipeline {
         stage('Linting') {
             steps {
                 dir('node-pipeline') {
-                    bat 'npm run lint'
+                    sh 'npm run lint'
                 }
             }
         }
@@ -43,7 +43,7 @@ pipeline {
         stage('Testing') {
             steps {
                 dir('node-pipeline') {
-                    bat 'npm test'
+                    sh 'npm test'
                 }
             }
         }
@@ -51,7 +51,7 @@ pipeline {
         stage('Test Coverage') {
             steps {
                 dir('node-pipeline') {
-                    bat 'npm run test:coverage'
+                    sh 'npm run test:coverage'
                 }
             }
         }
@@ -66,8 +66,9 @@ pipeline {
                     )
                 ]) {
                     dir('node-pipeline') {
-                        bat '''
-                            docker build -t "%DOCKERHUB_USERNAME%/tasks-app:%ENVIRONMENT%" .
+                        sh '''
+                            docker build \
+                                -t "$DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT" .
                         '''
                     }
                 }
@@ -89,10 +90,16 @@ pipeline {
                         passwordVariable: 'DOCKERHUB_PASSWORD'
                     )
                 ]) {
-                    bat '''
-                        @echo off
-                        docker login -u "%DOCKERHUB_USERNAME%" -p "%DOCKERHUB_PASSWORD%"
-                        docker push "%DOCKERHUB_USERNAME%/tasks-app:%ENVIRONMENT%"
+                    sh '''
+                        set +x
+                        echo "$DOCKERHUB_PASSWORD" |
+                            docker login \
+                                -u "$DOCKERHUB_USERNAME" \
+                                --password-stdin
+
+                        docker push \
+                            "$DOCKERHUB_USERNAME/tasks-app:$ENVIRONMENT"
+
                         docker logout
                     '''
                 }
@@ -105,5 +112,6 @@ pipeline {
             echo 'Cleaning up workspace...'
             cleanWs()
         }
+        
     }
 }
