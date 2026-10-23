@@ -1,21 +1,29 @@
 {
-  "name": "pipeline",
+  "name": "node-pipeline",
   "version": "1.0.0",
-  "description": "",
+  "description": "In-memory Tasks REST API for CI/CD practice",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "node --watch index.js",
+    "test:coverage": "c8 --all --include=src/**/*.js --exclude=src/server.js --check-coverage --lines 80 --functions 80 --branches 80 node --test",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "express": "^5.3.0"
+    "express": "5.3.0",
+    "helmet": "8.1.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "c8": "12.0.0",
+    "eslint": "10.13.0",
+    "supertest": "7.1.4"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }
