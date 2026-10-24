@@ -14,7 +14,7 @@ pipeline {
 
     environment {
         
-        DOCKERHUB_REPO = '354arjun/tasks-app-frontend'
+        DOCKERHUB_REPO = '$DOCKERHUB_USERNAME/tasks-app-frontend'
     }
 
     options {
