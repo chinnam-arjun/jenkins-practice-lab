@@ -1,0 +1,109 @@
+
+pipeline {
+    agent {
+        label 'linux'
+    }
+
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'qa', 'prod'],
+            description: 'Select the environment for the image tag'
+        )
+    }
+
+    environment {
+        
+        DOCKERHUB_REPO = '354arjun/tasks-app-frontend'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('react-frontend') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Linting') {
+            steps {
+                dir('react-frontend') {
+                    sh 'npm run lint'
+                }
+            }
+        }
+
+        stage('Testing') {
+            steps {
+                dir('react-frontend') {
+                    sh 'npm test -- --run'
+                }
+            }
+        }
+
+        stage('Test Coverage') {
+            steps {
+                dir('react-frontend') {
+                    sh 'npm run test:coverage'
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('react-frontend') {
+                    sh '''
+                        docker build \
+                          -t "$DOCKERHUB_REPO:$ENVIRONMENT" .
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            when {
+                expression {
+                    params.ENVIRONMENT == 'prod'
+                }
+            }
+
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-all-access',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKER_PASSWORD" |
+                          docker login \
+                            --username "$DOCKER_USERNAME" \
+                            --password-stdin
+
+                        docker push "$DOCKERHUB_REPO:$ENVIRONMENT"
+                    '''
+                }
+            }
+
+            post {
+                always {
+                    sh 'docker logout || true'
+                }
+            }
+        }
+    }
+}
