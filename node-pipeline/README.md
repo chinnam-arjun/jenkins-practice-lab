@@ -16,6 +16,16 @@ npm start
 
 The API listens on port `5000` by default. Set the `PORT` environment variable to use another port. For development with automatic restarts, run `npm run dev`.
 
+## CORS configuration
+
+The API allows the Vite frontend at `http://localhost:5173` by default outside production. To allow one or more trusted browser origins, set `CORS_ORIGINS` to a comma-separated allowlist:
+
+```sh
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000 npm start
+```
+
+For a future deployment, set `CORS_ORIGINS` in the API hosting environment to the exact origin(s) of the deployed frontend, including the scheme and port if applicable (for example, `https://tasks.example.com`). Production does not allow any browser origin unless it is explicitly configured. Requests without an `Origin` header, such as curl or Postman requests, continue to work without receiving CORS headers. CORS controls whether browsers may read responses; it does not authenticate callers or prevent requests from executing.
+
 ## API
 
 All task endpoints use JSON. Errors have the form `{ "error": { "message": "..." } }`.
