@@ -17,6 +17,10 @@ pipeline {
         )
     }
 
+    when {
+        changeset "**/node-pipeline/**"
+    }
+
     stages {
         stage('Checkout') {
             steps {

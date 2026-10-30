@@ -22,6 +22,10 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    when {
+        changeset "**/react-frontend/**"
+    }
+
     stages {
         stage('Checkout') {
             steps {
