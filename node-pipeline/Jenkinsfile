@@ -17,10 +17,6 @@ pipeline {
         )
     }
 
-    when {
-        changeset "**/node-pipeline/**"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -29,6 +25,9 @@ pipeline {
         }
 
         stage('Install Dependencies') {
+            when {
+                changeset "node-pipeline/**"
+            }
             steps {
                 dir('node-pipeline') {
                     sh 'npm ci'
@@ -37,6 +36,9 @@ pipeline {
         }
 
         stage('Linting') {
+            when {
+                changeset "node-pipeline/**"
+            }
             steps {
                 dir('node-pipeline') {
                     sh 'npm run lint'
@@ -45,6 +47,9 @@ pipeline {
         }
 
         stage('Testing') {
+            when {
+                changeset "node-pipeline/**"
+            }
             steps {
                 dir('node-pipeline') {
                     sh 'npm test'
@@ -53,6 +58,9 @@ pipeline {
         }
 
         stage('Test Coverage') {
+            when {
+                changeset "node-pipeline/**"
+            }
             steps {
                 dir('node-pipeline') {
                     sh 'npm run test:coverage'
@@ -61,6 +69,9 @@ pipeline {
         }
 
         stage('Build Docker Image') {
+            when {
+                changeset "node-pipeline/**"
+            }
             steps {
                 withCredentials([
                     usernamePassword(
@@ -81,9 +92,13 @@ pipeline {
 
         stage('Push Image') {
             when {
-                expression {
-                    params.ENVIRONMENT == 'prod'
+                allOf {
+                    expression {
+                        params.ENVIRONMENT == 'prod'
+                    }
+                    changeset "node-pipeline/**"
                 }
+                
             }
 
             steps {
