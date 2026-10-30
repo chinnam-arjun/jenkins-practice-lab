@@ -3,12 +3,10 @@ pipeline {
     agent {
         label 'linux'
     }
-
     options {
         timestamps()
         disableConcurrentBuilds()
     }
-
     parameters {
         choice(
             name: 'ENVIRONMENT',
@@ -16,7 +14,6 @@ pipeline {
             description: 'Select the environment to deploy to'
         )
     }
-
     stages {
         stage('Checkout') {
             steps {
